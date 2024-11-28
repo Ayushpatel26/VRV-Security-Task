@@ -1,10 +1,16 @@
 import { useState } from 'react';
 
-const CreateRoleForm = ({ role = null, onCancel, onSave }) => {
+const CreateRoleForm = ({ role = null, onCancel, onSave, availableRoles }) => {
   const [formData, setFormData] = useState(
     role || { name: '', permissions: [] }
   );
   const [permissionInput, setPermissionInput] = useState('');
+  const allPermissions = ['Read', 'Write', 'Delete'];
+
+  // Calculate available permissions by excluding selected ones
+  const availablePermissions = allPermissions.filter(
+    (perm) => !formData.permissions.includes(perm)
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,7 +36,9 @@ const CreateRoleForm = ({ role = null, onCancel, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    if (formData.permissions.length) {
+      onSave(formData);
+    }
   };
 
   return (
@@ -40,28 +48,52 @@ const CreateRoleForm = ({ role = null, onCancel, onSave }) => {
       </h2>
       <div className="mb-4">
         <label className="block text-gray-700">Role Name:</label>
-        <input
-          type="text"
+        <select
           name="name"
           value={formData.name}
           onChange={handleChange}
           required
           className="border border-gray-300 rounded w-full p-2"
-        />
+        >
+          <option value="" disabled>
+            -- Select a Role --
+          </option>
+          {availableRoles.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
       </div>
+
       <div className="mb-4">
         <label className="block text-gray-700">Permissions:</label>
         <div className="flex items-center">
-          <input
+          {/* <input
             type="text"
             value={permissionInput}
             onChange={(e) => setPermissionInput(e.target.value)}
             placeholder="Add permission"
             className="border border-gray-300 rounded w-full p-2 mr-2"
-          />
+          /> */}
+          <select
+            value={permissionInput}
+            onChange={(e) => setPermissionInput(e.target.value)}
+            className="border border-gray-300 rounded w-full p-2 mr-2"
+          >
+            <option value="" disabled>
+              -- Select a Permission --
+            </option>
+            {availablePermissions.map((perm) => (
+              <option key={perm} value={perm}>
+                {perm}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={handleAddPermission}
+            disabled={!permissionInput}
             className="bg-green-500 text-white p-2 rounded"
           >
             Add
@@ -95,7 +127,9 @@ const CreateRoleForm = ({ role = null, onCancel, onSave }) => {
         </button>
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={!formData.permissions.length}
+          className={`${formData.permissions.length ? 'bg-blue-500' : 'bg-gray-300'
+            } text-white px-4 py-2 rounded`}
         >
           Save
         </button>

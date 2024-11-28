@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const UserTable = ({ users, setUsers }) => {
 
-  // State to manage the edit modal visibility and the selected user for editing
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -12,8 +12,24 @@ const UserTable = ({ users, setUsers }) => {
     setIsEditModalOpen(true);
   };
 
-  const handleSave = () => {
-    setUsers(users.map(user => (user.id === selectedUser.id ? selectedUser : user)));
+  const handleSave = async () => {
+    setUsers(users.map(user => (user.id === selectedUser.id ? selectedUser : user))); // updating local state
+
+    try {
+      const response = await fetch(`http://localhost:3001/users/${selectedUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(selectedUser),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete user');
+      toast.success('User updated successfully!');
+    } catch (error) {
+      toast.error('Error updating user! Please try again later.');
+      console.log('Error updating user:', error);
+    }
     setIsEditModalOpen(false);
     setSelectedUser(null);
   };
@@ -23,13 +39,28 @@ const UserTable = ({ users, setUsers }) => {
     setSelectedUser({ ...selectedUser, [name]: value });
   };
 
-  const handleDelete = (id) => {
-    setUsers(users.filter(user => user.id !== id));
+  const handleDelete = async (id) => {
+    setUsers(users.filter(user => user.id !== id)); // in frontend
+
+    try {
+      const response = await fetch(`http://localhost:3001/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete user');
+      toast.success('User deleted successfully!');
+    } catch (error) {
+      toast.error('Error deleting user! Please try again later.');
+      console.log('Error deleting user:', error);
+    }
   };
 
   return (
     <div>
-      <table className="min-w-full border border-gray-200">
+      <table className="min-w-full border border-gray-200 overflow-y-scroll">
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Name</th>
@@ -47,26 +78,28 @@ const UserTable = ({ users, setUsers }) => {
               <td className="py-2 px-4 border-b text-center">{user.status}</td>
               <td className="py-2 px-4 border-b text-center">{user.role}</td>
               <td className="py-2 px-4 border-b text-center">
-                <button
-                  onClick={() => handleEdit(user)}
-                  className="bg-green-100 rounded mr-2"
-                >
-                  <lord-icon
-                    src="https://cdn.lordicon.com/exymduqj.json"
-                    trigger="hover"
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => handleEdit(user)}
+                    className="bg-green-100 rounded mr-2"
                   >
-                  </lord-icon>
-                </button>
-                <button
-                  onClick={() => handleDelete(user.id)}
-                  className="bg-red-100 rounded"
-                >
-                  <lord-icon
-                    src="https://cdn.lordicon.com/hwjcdycb.json"
-                    trigger="hover"
+                    <lord-icon
+                      src="https://cdn.lordicon.com/exymduqj.json"
+                      trigger="hover"
+                    >
+                    </lord-icon>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id)}
+                    className="bg-red-100 rounded"
                   >
-                  </lord-icon>
-                </button>
+                    <lord-icon
+                      src="https://cdn.lordicon.com/hwjcdycb.json"
+                      trigger="hover"
+                    >
+                    </lord-icon>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
