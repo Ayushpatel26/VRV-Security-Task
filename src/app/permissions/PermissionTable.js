@@ -1,25 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-
-const initialRoles = [
-  {
-    id: 1,
-    name: 'Admin',
-    permissions: ['Read', 'Write', 'Delete'],
-  },
-  {
-    id: 2,
-    name: 'User',
-    permissions: ['Read'],
-  },
-];
+import { toast } from 'react-toastify';
 
 const availablePermissions = ['Read', 'Write', 'Delete'];
 
-export default function PermissionTable() {
-  const [roles, setRoles] = useState(initialRoles); // Original roles
-  const [tempRoles, setTempRoles] = useState([...initialRoles]); // Temporary changes
+export default function PermissionTable({ roles, setRoles }) {
+  const [tempRoles, setTempRoles] = useState([...roles]); // Temporary changes
   const [isChanged, setIsChanged] = useState(false); // Track unsaved changes
 
   const handlePermissionChange = (roleId, permission) => {
@@ -27,20 +14,45 @@ export default function PermissionTable() {
       prevRoles.map((role) =>
         role.id === roleId
           ? {
-              ...role,
-              permissions: role.permissions.includes(permission)
-                ? role.permissions.filter((perm) => perm !== permission)
-                : [...role.permissions, permission],
-            }
+            ...role,
+            permissions: role.permissions.includes(permission)
+              ? role.permissions.filter((perm) => perm !== permission)
+              : [...role.permissions, permission],
+          }
           : role
       )
     );
     setIsChanged(true); // Mark changes as unsaved
   };
 
-  const handleSaveChanges = () => {
-    setRoles(tempRoles); // Commit changes to the original state
-    setIsChanged(false); // Reset change tracker
+  const handleSaveChanges = async () => {
+    try {
+      await Promise.all(
+        tempRoles.map(async (role) => {
+          const response = await fetch(`http://localhost:3001/roles/${role.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ permissions: role.permissions }),
+          });
+  
+          if (!response.ok) {
+            toast.error(`Failed to update permission of ${role.name}`);
+            throw new Error(`Failed to update permission of: ${role.name}`);
+          }
+        })
+      );
+
+      toast.success('Permissions updated successfully!');
+      setRoles(tempRoles);
+    } catch (error) {
+      toast.error('Failed to saved permissions!');
+      setTempRoles([...roles]);
+      console.log('Failed to saved permissions', error);
+    } finally {
+      setIsChanged(false);
+    }
   };
 
   const handleCancelChanges = () => {
